@@ -1,0 +1,2182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkers nila Pineda at Oliveros</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&family=VT323&display=swap');
+        
+        body, button, input, select, textarea, h1, h2, h3, h4, p, span, div, label, li {
+            font-family: 'Silkscreen', 'Press Start 2P', monospace;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            color: #f8fafc;
+            user-select: none;
+            overflow-x: hidden;
+            letter-spacing: 0.02em;
+        }
+
+        /* Retro 8-Bit Arcade Font Styles (Matching Reference Image) */
+        .font-pixel-title {
+            font-family: 'Silkscreen', 'Press Start 2P', monospace;
+            font-weight: 700;
+            text-shadow: 0px 5px 0px #091e3a, 3px 5px 0px #091e3a;
+            letter-spacing: 0.05em;
+        }
+
+        .font-pixel-sub {
+            font-family: 'Silkscreen', 'VT323', monospace;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+        }
+
+        /* 8-Bit Pixel Sky, Clouds, Grass & Dirt Homescreen Background */
+        .pixel-home-bg {
+            background-color: #63d8f2;
+            background-image: 
+                /* Subtle pixel grid scanline texture */
+                linear-gradient(to right, rgba(255,255,255,0.04) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255,255,255,0.04) 1px, transparent 1px),
+                /* Sky gradient */
+                linear-gradient(180deg, #56ccf2 0%, #7ce2fa 72%, #b8f2ff 100%);
+            background-size: 16px 16px, 16px 16px, 100% 100%;
+            image-rendering: pixelated;
+        }
+
+        /* Pixel Grass Top Strip */
+        .pixel-grass {
+            background-color: #38b000;
+            background-image: 
+                linear-gradient(90deg, #70e000 0%, #70e000 25%, #38b000 25%, #38b000 50%, #2b9348 50%, #2b9348 75%, #55a630 75%, #55a630 100%);
+            background-size: 64px 100%;
+            border-top: 6px solid #9ef01a;
+            box-shadow: 0 6px 0 #1b4332;
+        }
+
+        /* Pixel Dirt Ground */
+        .pixel-dirt {
+            background-color: #3d2c1d;
+            background-image: 
+                radial-gradient(#5c432c 22%, transparent 23%),
+                radial-gradient(#261a10 22%, transparent 23%),
+                radial-gradient(#78593c 18%, transparent 19%),
+                radial-gradient(#4a3623 20%, transparent 21%);
+            background-size: 48px 48px;
+            background-position: 0 0, 24px 24px, 12px 36px, 36px 12px;
+        }
+
+        @keyframes floatCloud {
+            0%, 100% { transform: translateX(0px); }
+            50% { transform: translateX(18px); }
+        }
+
+        @keyframes blinkCursor {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+
+        .cloud-float {
+            animation: floatCloud 6s ease-in-out infinite;
+        }
+
+        .pixel-cursor {
+            animation: blinkCursor 0.9s infinite;
+        }
+
+        /* 3D Scene Perspective Wrapper */
+        .perspective-container {
+            perspective: 1200px;
+            perspective-origin: 50% 50%;
+        }
+
+        /* SYNCHRONIZED 3D TABLE & BOARD PARENT TRANSFORM */
+        .table-3d-wrapper {
+            transform-style: preserve-3d;
+            transition: transform 2.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* View Modes */
+        .mode-2d {
+            transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) !important;
+        }
+
+        .mode-3d-p1 {
+            transform: rotateX(38deg) rotateZ(0deg) rotateY(0deg);
+        }
+
+        .mode-3d-p2 {
+            transform: rotateX(38deg) rotateZ(180deg) rotateY(0deg);
+        }
+
+        .mode-3d-static {
+            transform: rotateX(38deg) rotateZ(0deg) rotateY(0deg) !important;
+        }
+
+        /* Wood Table Surface */
+        .wood-table {
+            background: radial-gradient(circle, #78350f 0%, #451a03 100%);
+            box-shadow: 0 35px 60px -15px rgba(0, 0, 0, 0.9), inset 0 0 40px rgba(0,0,0,0.6);
+            border: 12px solid #291003;
+            border-radius: 28px;
+        }
+
+        /* Dynamic Table Surface Themes */
+        .table-theme-badap {
+            background: radial-gradient(circle, #311042 0%, #120424 100%) !important;
+            border: 12px solid #f43f5e !important;
+            box-shadow: 0 0 35px rgba(244, 63, 94, 0.55), inset 0 0 20px rgba(56, 189, 248, 0.4), 0 35px 60px -15px rgba(0, 0, 0, 0.9) !important;
+            border-radius: 28px !important;
+        }
+
+        .table-theme-universe {
+            background: radial-gradient(circle, #1e3a5f 0%, #091322 100%) !important;
+            border: 12px solid #22d3ee !important;
+            box-shadow: 0 0 35px rgba(34, 211, 238, 0.4), inset 0 0 25px rgba(132, 204, 22, 0.25), 0 35px 60px -15px rgba(0, 0, 0, 0.9) !important;
+            border-radius: 50% !important; /* Planet / Globe Orbit Table */
+        }
+
+        .table-theme-mario {
+            background-color: #b45309 !important;
+            background-image: 
+                linear-gradient(335deg, rgba(120, 53, 15, 0.85) 23px, transparent 23px),
+                linear-gradient(155deg, rgba(146, 64, 14, 0.85) 23px, transparent 23px),
+                linear-gradient(335deg, rgba(120, 53, 15, 0.85) 23px, transparent 23px),
+                linear-gradient(155deg, rgba(146, 64, 14, 0.85) 23px, transparent 23px) !important;
+            background-size: 58px 58px !important;
+            background-position: 0px 2px, 4px 35px, 29px 31px, 34px 6px !important;
+            border: 12px solid #facc15 !important;
+            box-shadow: 0 0 30px rgba(250, 204, 21, 0.5), 0 35px 60px -15px rgba(0, 0, 0, 0.9) !important;
+            border-radius: 20px !important; /* Brick & Question Block Platform */
+        }
+
+        .table-theme-pacman {
+            background: radial-gradient(circle, #090d16 0%, #000000 100%) !important;
+            border: 12px solid #2563eb !important;
+            box-shadow: inset 0 0 0 4px #60a5fa, 0 0 35px rgba(37, 99, 235, 0.7), 0 35px 60px -15px rgba(0, 0, 0, 0.95) !important;
+            border-radius: 24px !important; /* Neon Arcade Maze Cabinet */
+        }
+
+        /* Environmental Backgrounds */
+        .env-badap {
+            background-color: #090318;
+            background-image:
+                radial-gradient(circle at 14% 22%, rgba(251, 113, 133, 0.35) 0%, transparent 10%),
+                radial-gradient(#ffffff 1.5px, transparent 1.5px),
+                radial-gradient(#e879f9 2px, transparent 2px),
+                linear-gradient(180deg, #070314 0%, #1e1042 42%, #701a75 62%, #090d26 62.5%, #050817 100%);
+            background-size: 100% 100%, 90px 90px, 140px 140px, 100% 100%;
+            background-position: center, 0 0, 45px 45px, center;
+        }
+
+        .env-universe {
+            background-color: #16324f;
+            background-image:
+                radial-gradient(circle at 50% 48%, rgba(74, 222, 128, 0.35) 0%, rgba(14, 165, 233, 0.35) 26%, transparent 32%),
+                radial-gradient(#ffffff 2px, transparent 2px),
+                radial-gradient(#7dd3fc 3px, transparent 3px),
+                linear-gradient(180deg, #0f2537 0%, #1c4163 50%, #0b1b2b 100%);
+            background-size: 100% 100%, 96px 96px, 144px 144px, 100% 100%;
+            background-position: center, 0 0, 48px 48px, center;
+        }
+
+        .env-mario {
+            background-color: #38bdf8;
+            background-image:
+                linear-gradient(to top, #16a34a 0%, #22c55e 6%, #eab308 6.5%, #ca8a04 10%, transparent 10.5%),
+                radial-gradient(circle at 20% 25%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.85) 4%, transparent 4.5%),
+                radial-gradient(circle at 24% 24%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.85) 5%, transparent 5.5%),
+                radial-gradient(circle at 80% 20%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.85) 4%, transparent 4.5%),
+                radial-gradient(circle at 84% 19%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.85) 5%, transparent 5.5%),
+                linear-gradient(180deg, #0284c7 0%, #38bdf8 55%, #bae6fd 100%);
+        }
+
+        .env-pacman {
+            background-color: #000000;
+            background-image:
+                radial-gradient(#fb923c 2.5px, transparent 3px),
+                linear-gradient(to right, rgba(37, 99, 235, 0.25) 2px, transparent 2px),
+                linear-gradient(to bottom, rgba(37, 99, 235, 0.25) 2px, transparent 2px);
+            background-size: 40px 40px, 120px 120px, 120px 120px;
+            background-position: 20px 20px, 0 0, 0 0;
+        }
+
+        /* Enhanced 3D Pebble & Hub (Umbok) Stylings */
+        .piece {
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, background 0.3s ease;
+            transform-style: preserve-3d;
+        }
+
+        /* Deep 3D extrusions and drop shadows for realistic puck height */
+        .piece-3d-layer {
+            box-shadow: 
+                0 4px 0px rgba(0,0,0,0.6), 
+                0 7px 0px rgba(0,0,0,0.4), 
+                0 10px 1px rgba(0,0,0,0.3), 
+                0 14px 18px rgba(0, 0, 0, 0.6);
+            transform: translateZ(12px) translateY(-3px);
+        }
+
+        .piece-3d-layer:active {
+            transform: translateZ(6px) translateY(0px);
+            box-shadow: 
+                0 2px 0px rgba(0,0,0,0.6), 
+                0 4px 0px rgba(0,0,0,0.4), 
+                0 6px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .mode-3d-p2 .piece-content {
+            transform: rotate(180deg);
+        }
+
+        /* Square Highlights */
+        .square-selected {
+            box-shadow: inset 0 0 0 4px #3b82f6, 0 0 22px #3b82f6 !important;
+        }
+
+        /* Dynamic Eating Banner Popup */
+        @keyframes bannerPopup {
+            0% { transform: translate(-50%, -50%) scale(0.3) rotate(-5deg); opacity: 0; }
+            20% { transform: translate(-50%, -50%) scale(1.1) rotate(2deg); opacity: 1; }
+            80% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(0.8) translateY(-40px); opacity: 0; }
+        }
+
+        .announcer-banner {
+            animation: bannerPopup 1.8s ease-out forwards;
+            pointer-events: none;
+        }
+
+        /* Character customization panel inspired by the supplied reference */
+        .customizer-panel {
+            background: linear-gradient(145deg, rgba(8, 12, 22, .98), rgba(18, 25, 39, .96));
+            border: 1px solid rgba(148, 163, 184, .28);
+            box-shadow: 0 24px 70px rgba(0,0,0,.55);
+        }
+        .customizer-section-title {
+            color: #aeb8c7;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(148,163,184,.35);
+            padding-bottom: 7px;
+            margin-bottom: 10px;
+        }
+        .face-option {
+            border: 1px solid rgba(148,163,184,.35);
+            background: rgba(15,23,42,.78);
+            aspect-ratio: 1;
+            padding: 4px;
+            transition: .18s ease;
+        }
+        .face-option.selected {
+            border: 2px solid #38bdf8;
+            background: rgba(14,165,233,.18);
+            box-shadow: 0 0 0 1px rgba(56,189,248,.22);
+        }
+        .face-option svg { width: 100%; height: 100%; }
+        .custom-swatch {
+            width: 31px; height: 31px; border: 2px solid rgba(255,255,255,.24);
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,.3);
+            transition: .15s ease;
+        }
+        .custom-swatch.selected {
+            outline: 2px solid #e2e8f0;
+            outline-offset: 2px;
+            transform: scale(1.05);
+        }
+        .piece-preview {
+            width: 112px; height: 112px; border-radius: 999px;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; border: 5px solid #ef4444;
+            box-shadow: 0 0 26px rgba(0,0,0,.55);
+        }
+        .piece-preview svg { width: 100%; height: 100%; }
+
+        /* Dynamic Themed Glassmorphism Panels */
+        .hud-panel-badap {
+            background: rgba(15, 7, 34, 0.82) !important;
+            border-color: rgba(244, 63, 94, 0.45) !important;
+            box-shadow: 0 8px 32px rgba(244, 63, 94, 0.2) !important;
+        }
+        .hud-panel-universe {
+            background: rgba(11, 27, 43, 0.85) !important;
+            border-color: rgba(34, 211, 238, 0.45) !important;
+            box-shadow: 0 8px 32px rgba(34, 211, 238, 0.2) !important;
+        }
+        .hud-panel-mario {
+            background: rgba(2, 132, 199, 0.85) !important;
+            border-color: rgba(250, 204, 21, 0.5) !important;
+            box-shadow: 0 8px 32px rgba(250, 204, 21, 0.25) !important;
+        }
+        .hud-panel-pacman {
+            background: rgba(5, 5, 12, 0.9) !important;
+            border-color: rgba(37, 99, 235, 0.6) !important;
+            box-shadow: 0 8px 32px rgba(37, 99, 235, 0.3) !important;
+        }
+    
+        /* --- ARCADE POLISH PASS: cleaner, hand-made browser-game look --- */
+        :root {
+            --arcade-ink: #101820;
+            --arcade-panel: #202c38;
+            --arcade-panel-light: #2b3b49;
+            --arcade-line: #526575;
+            --arcade-yellow: #ffd34e;
+            --arcade-cyan: #42d6e8;
+            --arcade-green: #83d34a;
+        }
+
+        body, button, input, select, textarea, p, span, label, li {
+            font-family: "Trebuchet MS", Arial, sans-serif !important;
+            letter-spacing: .01em;
+        }
+        h1, h2, h3, h4, .font-pixel-title, .font-pixel-sub {
+            font-family: "Silkscreen", "Trebuchet MS", sans-serif !important;
+            letter-spacing: .025em;
+        }
+        body {
+            background-color: #111923;
+            color: #f5f7fa;
+        }
+
+        /* Panels: solid surfaces and crisp borders instead of glass effects */
+        .hud-panel-badap, .hud-panel-universe, .hud-panel-mario, .hud-panel-pacman,
+        .customizer-panel {
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            background: #202c38 !important;
+            border: 2px solid #526575 !important;
+            border-radius: 10px !important;
+            box-shadow: 0 5px 0 #0a1118, 0 9px 18px rgba(0,0,0,.35) !important;
+        }
+        #mainHeader, #p1Card, #p2Card {
+            border-radius: 10px !important;
+        }
+
+        /* Buttons feel like actual arcade controls */
+        button {
+            border-radius: 6px !important;
+            font-weight: 800 !important;
+            transition: transform .12s ease, filter .12s ease, box-shadow .12s ease !important;
+        }
+        button:hover { filter: brightness(1.13); }
+        button:active {
+            transform: translateY(2px) scale(.985) !important;
+            box-shadow: none !important;
+        }
+        button:focus-visible, input:focus-visible, select:focus-visible {
+            outline: 3px solid var(--arcade-yellow) !important;
+            outline-offset: 2px;
+        }
+
+        /* Stronger game identity and less generic neon/glass styling */
+        .font-pixel-title {
+            color: #ffe27a;
+            text-shadow: 2px 2px 0 #8b4b19, 4px 4px 0 #101820 !important;
+        }
+        .font-pixel-sub { color: #d9e6ef; }
+        .customizer-panel {
+            background: #18232e !important;
+            border: 3px solid #718493 !important;
+            box-shadow: 0 7px 0 #080e13, 0 16px 35px rgba(0,0,0,.6) !important;
+        }
+        .customizer-section-title {
+            color: #f7d76a;
+            font-family: "Silkscreen", sans-serif;
+            letter-spacing: .04em;
+            border-bottom: 2px solid #465b6b;
+        }
+        .face-option {
+            background: #101a23;
+            border: 2px solid #526575;
+            border-radius: 6px !important;
+        }
+        .face-option:hover { border-color: #f7d76a; transform: translateY(-2px); }
+        .face-option.selected {
+            border: 3px solid #f7d76a;
+            background: #344452;
+            box-shadow: inset 0 0 0 2px #101a23, 0 3px 0 #080e13;
+        }
+        .custom-swatch {
+            border: 2px solid #758594;
+            border-radius: 4px !important;
+            box-shadow: 0 2px 0 #080e13 !important;
+        }
+        .custom-swatch.selected {
+            outline: 3px solid #ffe27a;
+            outline-offset: 2px;
+            transform: translateY(-2px);
+        }
+        .piece-preview {
+            border-radius: 14px !important;
+            border-width: 5px !important;
+            box-shadow: 0 5px 0 #080e13, 0 10px 20px rgba(0,0,0,.4) !important;
+        }
+
+        /* Keep the board as the visual focus */
+        #boardContainer {
+            border-radius: 8px !important;
+            box-shadow: 0 8px 0 rgba(0,0,0,.55), 0 16px 28px rgba(0,0,0,.45) !important;
+        }
+        .wood-table {
+            border-radius: 12px !important;
+            box-shadow: 0 12px 0 #1a0b04, 0 20px 35px rgba(0,0,0,.55) !important;
+        }
+        .piece { cursor: pointer; }
+        .piece:hover { filter: brightness(1.12); }
+
+        /* Compact readable labels on smaller screens */
+        @media (max-width: 640px) {
+            .customizer-panel { padding: 14px !important; }
+            .custom-swatch { width: 28px; height: 28px; }
+            .piece-preview { width: 88px; height: 88px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: .01ms !important;
+                animation-iteration-count: 1 !important;
+                scroll-behavior: auto !important;
+                transition-duration: .01ms !important;
+            }
+        }
+
+    </style>
+</head>
+<body id="envBody" class="env-badap flex flex-col min-h-screen justify-between items-center p-2 sm:p-4 relative transition-all duration-700">
+
+    <!-- Dynamic Custom Theme Scenic Backdrop Layer -->
+    <div id="customThemeBackdrop" class="fixed inset-0 pointer-events-none z-0 overflow-hidden transition-opacity duration-500"></div>
+
+    <!-- FX Canvas for Particle Explosions -->
+    <canvas id="fxCanvas" class="fixed inset-0 pointer-events-none z-30 w-full h-full"></canvas>
+
+    <!-- Announcer Banner Overlay -->
+    <div id="announcerContainer" class="fixed inset-0 pointer-events-none z-40 flex items-center justify-center"></div>
+
+    <!-- RETRO PIXEL HOMESCREEN / STARTING SCREEN -->
+    <div id="homeScreenModal" class="fixed inset-0 z-50 pixel-home-bg flex flex-col justify-between overflow-hidden">
+        
+        <!-- Top & Mid Pixel Clouds SVG Layer -->
+        <div class="relative w-full flex-1 flex flex-col items-center justify-center px-4 z-10">
+            
+            <!-- Left Pixel Cloud -->
+            <svg class="cloud-float absolute top-8 left-4 sm:left-16 w-28 sm:w-44 h-auto opacity-95 pointer-events-none" viewBox="0 0 16 8" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+                <rect x="4" y="1" width="6" height="1" fill="#FFFFFF"/>
+                <rect x="3" y="2" width="9" height="1" fill="#FFFFFF"/>
+                <rect x="2" y="3" width="12" height="1" fill="#FFFFFF"/>
+                <rect x="1" y="4" width="14" height="2" fill="#FFFFFF"/>
+                <rect x="0" y="6" width="16" height="1" fill="#D8F3FF"/>
+                <rect x="1" y="7" width="14" height="1" fill="#BCE8FC"/>
+            </svg>
+
+            <!-- Right Pixel Cloud -->
+            <svg class="cloud-float absolute top-14 right-4 sm:right-20 w-32 sm:w-48 h-auto opacity-95 pointer-events-none" style="animation-delay: -2.5s;" viewBox="0 0 18 8" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+                <rect x="6" y="1" width="5" height="1" fill="#FFFFFF"/>
+                <rect x="4" y="2" width="9" height="1" fill="#FFFFFF"/>
+                <rect x="3" y="3" width="12" height="1" fill="#FFFFFF"/>
+                <rect x="1" y="4" width="15" height="2" fill="#FFFFFF"/>
+                <rect x="0" y="6" width="18" height="1" fill="#D8F3FF"/>
+                <rect x="2" y="7" width="14" height="1" fill="#BCE8FC"/>
+            </svg>
+
+            <!-- Center-Top Pixel Cloud -->
+            <svg class="cloud-float absolute top-28 sm:top-24 left-1/2 -translate-x-1/2 w-36 sm:w-52 h-auto opacity-90 pointer-events-none" style="animation-delay: -4s;" viewBox="0 0 18 8" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+                <rect x="6" y="1" width="6" height="1" fill="#FFFFFF"/>
+                <rect x="4" y="2" width="10" height="1" fill="#FFFFFF"/>
+                <rect x="2" y="3" width="14" height="2" fill="#FFFFFF"/>
+                <rect x="0" y="5" width="18" height="2" fill="#E6F7FF"/>
+                <rect x="1" y="7" width="16" height="1" fill="#BCE8FC"/>
+            </svg>
+
+            <!-- Side Distant White Pixel Hills -->
+            <svg class="absolute bottom-0 left-0 w-36 sm:w-64 h-auto pointer-events-none" viewBox="0 0 12 10" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+                <rect x="0" y="0" width="2" height="10" fill="#FFFFFF"/>
+                <rect x="2" y="2" width="2" height="8" fill="#FFFFFF"/>
+                <rect x="4" y="4" width="2" height="6" fill="#FFFFFF"/>
+                <rect x="6" y="6" width="2" height="4" fill="#FFFFFF"/>
+                <rect x="8" y="8" width="2" height="2" fill="#FFFFFF"/>
+            </svg>
+
+            <svg class="absolute bottom-0 right-0 w-36 sm:w-64 h-auto pointer-events-none" viewBox="0 0 12 10" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+                <rect x="10" y="0" width="2" height="10" fill="#FFFFFF"/>
+                <rect x="8" y="2" width="2" height="8" fill="#FFFFFF"/>
+                <rect x="6" y="4" width="2" height="6" fill="#FFFFFF"/>
+                <rect x="4" y="6" width="2" height="4" fill="#FFFFFF"/>
+                <rect x="2" y="8" width="2" height="2" fill="#FFFFFF"/>
+            </svg>
+
+            <!-- Pixel Bushes above Grass -->
+            <svg class="absolute bottom-0 left-12 sm:left-32 w-20 sm:w-28 h-auto pointer-events-none" viewBox="0 0 10 5" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+                <rect x="3" y="0" width="4" height="1" fill="#70E000"/>
+                <rect x="2" y="1" width="6" height="1" fill="#55A630"/>
+                <rect x="1" y="2" width="8" height="2" fill="#38B000"/>
+                <rect x="0" y="4" width="10" height="1" fill="#2B9348"/>
+            </svg>
+
+            <svg class="absolute bottom-0 right-14 sm:right-36 w-20 sm:w-28 h-auto pointer-events-none" viewBox="0 0 10 5" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+                <rect x="3" y="0" width="4" height="1" fill="#70E000"/>
+                <rect x="2" y="1" width="6" height="1" fill="#55A630"/>
+                <rect x="1" y="2" width="8" height="2" fill="#38B000"/>
+                <rect x="0" y="4" width="10" height="1" fill="#2B9348"/>
+            </svg>
+
+            <!-- Main Retro Title & Menu Prompts -->
+            <div class="text-center z-20 mt-8 sm:mt-4">
+                <h1 class="font-pixel-title text-3xl sm:text-5xl md:text-6xl text-[#0077ff] leading-snug mb-6 select-none">
+                    CHEGGERS
+                </h1>
+
+                <p class="font-pixel-sub text-3xl sm:text-5xl text-white drop-shadow-[0_3px_0_rgba(15,23,42,0.55)] mb-6 tracking-widest">
+                    READY TO PLAY?
+                </p>
+
+                <!-- Retro YES / NO & Controls Menu -->
+                <div class="flex flex-wrap items-center justify-center gap-8 sm:gap-12 font-pixel-sub text-3xl sm:text-5xl">
+                    <button onclick="startFromHomeScreen()" class="group flex items-center gap-2 text-[#1d4ed8] hover:text-[#0044cc] transition-transform hover:scale-110 active:scale-95 cursor-pointer">
+                        <span class="pixel-cursor text-[#0077ff]">▶</span>
+                        <span class="drop-shadow-[0_2px_0_rgba(255,255,255,0.7)]">START</span>
+                    </button>
+
+                    <button onclick="openModal('instructionsModal')" class="group flex items-center gap-2 text-[#3b5998] hover:text-[#1d4ed8] transition-transform hover:scale-105 active:scale-95 cursor-pointer">
+                        <span class="opacity-0 group-hover:opacity-100 text-[#0077ff]">▶</span>
+                        <span class="drop-shadow-[0_2px_0_rgba(255,255,255,0.7)]">RULES</span>
+                    </button>
+
+                    <button onclick="openModal('statsModal')" class="group flex items-center gap-2 text-[#3b5998] hover:text-[#1d4ed8] transition-transform hover:scale-105 active:scale-95 cursor-pointer">
+                        <span class="opacity-0 group-hover:opacity-100 text-[#0077ff]">▶</span>
+                        <span class="drop-shadow-[0_2px_0_rgba(255,255,255,0.7)]">STATS</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Pixel Grass & Dirt Terrain -->
+        <div class="w-full z-10">
+            <div class="w-full h-7 sm:h-9 pixel-grass"></div>
+            <div class="w-full h-24 sm:h-32 pixel-dirt flex items-end justify-center pb-3">
+                <span class="font-pixel-sub text-lg sm:text-xl text-amber-200/70 tracking-widest">
+                    PRESS START TO CUSTOMIZE PIECES &amp; BOARD
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header & Clean Navigation -->
+    <header id="mainHeader" class="w-full max-w-6xl flex flex-wrap justify-between items-center gap-4 hud-panel-badap backdrop-blur-md p-4 rounded-2xl border shadow-xl mb-2 z-10 transition-all duration-500">
+        <div class="flex items-center space-x-3">
+            <div class="p-2 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-xl text-white shadow-lg shadow-blue-500/30">
+                <i class="fa-solid font-bold text-2xl">♟</i>
+            </div>
+            <div>
+                <h1 class="text-xl sm:text-2xl font-black tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400">
+                    CHEGGERS 
+                </h1>
+                <p class="text-xs text-slate-400">Synchronized Table & Custom Customization Wizard</p>
+            </div>
+        </div>
+
+        <!-- Clock & Match Status Bar -->
+        <div class="flex items-center gap-4 bg-slate-950/70 px-4 py-2 rounded-xl border border-slate-800">
+            <div class="flex items-center gap-2 text-slate-300 text-xs font-semibold">
+                <i class="fa-solid fa-stopwatch text-amber-400"></i>
+                <span>Match: <span id="matchClock" class="font-mono text-white">00:00</span></span>
+            </div>
+            <div class="h-4 border-r border-slate-800"></div>
+            <div class="flex items-center gap-2 text-slate-300 text-xs font-semibold">
+                <i class="fa-solid fa-hourglass-half text-blue-400"></i>
+                <span>Turn: <span id="turnClock" class="font-mono text-amber-300">30s</span></span>
+            </div>
+        </div>
+
+        <!-- In-Game Action Controls -->
+        <div class="flex flex-wrap items-center gap-2">
+            <button onclick="togglePauseGame()" id="pauseBtn" class="flex items-center gap-2 px-3 py-2 bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 rounded-xl border border-amber-500/30 transition text-sm font-semibold">
+                <i class="fa-solid fa-pause text-base" id="pauseIcon"></i>
+                <span id="pauseText">Pause</span>
+            </button>
+            <button onclick="toggleBGM()" id="bgmToggleBtn" class="flex items-center gap-2 px-3 py-2 bg-pink-600/30 hover:bg-pink-600/50 text-pink-300 rounded-xl border border-pink-500/30 transition text-sm font-semibold" title="Toggle Background Music">
+                <i class="fa-solid fa-music text-base" id="bgmIcon"></i>
+                <span id="bgmText">BGM: OFF</span>
+            </button>
+            <button onclick="toggleSound()" id="soundToggleBtn" class="flex items-center gap-2 px-3 py-2 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 rounded-xl border border-indigo-500/30 transition text-sm font-semibold">
+                <i class="fa-solid fa-volume-high text-base" id="soundIcon"></i>
+            </button>
+            <button onclick="toggleViewMode()" id="viewModeBtn" class="flex items-center gap-2 px-3 py-2 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 rounded-xl border border-indigo-500/30 transition text-sm font-semibold">
+                <i class="fa-solid fa-cube text-base" id="viewIcon"></i>
+                <span id="viewModeText">3D View</span>
+            </button>
+            <button onclick="toggleSpinSetting()" id="spinToggleBtn" class="flex items-center gap-2 px-3 py-2 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 rounded-xl border border-emerald-500/30 transition text-sm font-semibold">
+                <i class="fa-solid fa-arrows-spin text-base"></i>
+                <span id="spinToggleText">Spin: ON</span>
+            </button>
+            <button onclick="openForfeitModal()" id="forfeitBtn" class="flex items-center gap-2 px-3 py-2 bg-rose-600/30 hover:bg-rose-600/50 text-rose-300 rounded-xl border border-rose-500/30 transition text-sm font-semibold" title="Forfeit Match">
+                <i class="fa-solid fa-flag text-base"></i>
+                <span class="hidden sm:inline">Forfeit</span>
+            </button>
+            <button onclick="openModal('statsModal')" class="flex items-center gap-2 px-3 py-2 bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 rounded-xl border border-purple-500/30 transition text-sm font-semibold">
+                <i class="fa-solid fa-trophy text-base"></i>
+            </button>
+            <button onclick="openModal('instructionsModal')" class="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition text-sm font-semibold">
+                <i class="fa-solid fa-circle-question text-base"></i>
+            </button>
+            <button onclick="restartSetupWizard()" class="flex items-center gap-2 px-3 py-2 bg-red-600/30 hover:bg-red-600/50 text-red-300 rounded-xl border border-red-500/30 transition text-sm font-semibold" title="New Match / Reset Setup">
+                <i class="fa-solid fa-rotate-right text-base"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Game Area -->
+    <main class="w-full max-w-6xl flex flex-col lg:flex-row items-center justify-center gap-6 my-auto z-10">
+
+        <!-- Left Player Card: Player 1 -->
+        <div id="p1Card" class="w-full lg:w-64 hud-panel-badap backdrop-blur-md p-4 rounded-2xl border-2 border-red-500/40 shadow-xl flex lg:flex-col justify-between items-center gap-4 transition-all duration-300">
+            <div class="flex items-center lg:flex-col gap-3 text-left lg:text-center">
+                <div id="p1AvatarDisplay" class="w-14 h-14 rounded-full bg-gradient-to-br from-red-500 to-rose-700 border-2 border-white/20 flex items-center justify-center shadow-lg text-2xl">
+                    🥊
+                </div>
+                <div>
+                    <h2 id="p1NameDisplay" class="font-bold text-lg text-red-400 truncate max-w-[120px] lg:max-w-[180px]">Player 1</h2>
+                    <span id="p1TurnBadge" class="inline-block px-2 py-0.5 text-xs bg-red-500/20 text-red-300 border border-red-500/30 rounded-full font-medium">Turn</span>
+                </div>
+            </div>
+            
+            <div class="flex lg:w-full justify-around bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-center">
+                <div>
+                    <div class="text-xs text-slate-400">Pieces</div>
+                    <div id="p1PieceCount" class="text-xl font-bold text-slate-100">12</div>
+                </div>
+                <div class="border-r border-slate-800"></div>
+                <div>
+                    <div class="text-xs text-slate-400">Kings</div>
+                    <div id="p1KingCount" class="text-xl font-bold text-amber-400">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center: Interactive Synchronized Table & Checkers Board -->
+        <div class="flex flex-col items-center">
+            <!-- Turn Timer Progress Bar -->
+            <div class="w-[320px] sm:w-[460px] md:w-[520px] bg-slate-950/80 h-2 rounded-full overflow-hidden mb-2 border border-slate-800">
+                <div id="timerBar" class="bg-gradient-to-r from-blue-500 to-indigo-500 h-full w-full transition-all duration-1000"></div>
+            </div>
+
+            <!-- Perspective Container wrapping BOTH Wooden Table & Board together -->
+            <div class="perspective-container flex justify-center items-center">
+                <div id="tableAndBoardWrapper" class="table-3d-wrapper mode-3d-p1 wood-table p-4 sm:p-6 rounded-3xl shadow-2xl flex justify-center items-center">
+                    <div id="boardContainer" class="w-[300px] h-[300px] sm:w-[440px] sm:h-[440px] md:w-[480px] md:h-[480px] grid grid-cols-8 grid-rows-8 rounded-xl border-8 border-slate-950 bg-slate-950 shadow-2xl relative">
+                        <!-- Board squares rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Player Card: Player 2 -->
+        <div id="p2Card" class="w-full lg:w-64 hud-panel-badap backdrop-blur-md p-4 rounded-2xl border border-slate-800 shadow-xl flex lg:flex-col justify-between items-center gap-4 transition-all duration-300">
+            <div class="flex items-center lg:flex-col gap-3 text-left lg:text-center">
+                <div id="p2AvatarDisplay" class="w-14 h-14 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 border-2 border-white/20 flex items-center justify-center shadow-lg text-2xl">
+                    👑
+                </div>
+                <div>
+                    <h2 id="p2NameDisplay" class="font-bold text-lg text-slate-300 truncate max-w-[120px] lg:max-w-[180px]">Player 2</h2>
+                    <span id="p2TurnBadge" class="inline-block px-2 py-0.5 text-xs bg-slate-800 text-slate-500 rounded-full font-medium">Waiting</span>
+                </div>
+            </div>
+
+            <div class="flex lg:w-full justify-around bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-center">
+                <div>
+                    <div class="text-xs text-slate-400">Pieces</div>
+                    <div id="p2PieceCount" class="text-xl font-bold text-slate-100">12</div>
+                </div>
+                <div class="border-r border-slate-800"></div>
+                <div>
+                    <div class="text-xs text-slate-400">Kings</div>
+                    <div id="p2KingCount" class="text-xl font-bold text-amber-400">0</div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full max-w-6xl text-center py-2 text-xs text-slate-500 z-10">
+        Checkers Master 3D &bull; Setup Wizard Sequence Enabled
+    </footer>
+
+    <!-- PAUSE MENU OVERLAY -->
+    <div id="pauseModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-2xl p-6 shadow-2xl text-center">
+            <div class="w-16 h-16 bg-amber-500/20 text-amber-400 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border border-amber-500/30">
+                <i class="fa-solid fa-pause"></i>
+            </div>
+            <h2 class="text-2xl font-black text-white mb-1">GAME PAUSED</h2>
+            <p class="text-xs text-slate-400 mb-6">Take a breather! Match timers are currently stopped.</p>
+
+            <div class="flex flex-col gap-3">
+                <button onclick="togglePauseGame()" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2 text-sm">
+                    <i class="fa-solid fa-play"></i> Resume Match
+                </button>
+                <button onclick="togglePauseGame(); restartGame();" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2.5 rounded-xl border border-slate-700 transition text-xs flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i> Restart Board
+                </button>
+                <button onclick="togglePauseGame(); openForfeitModal();" class="w-full bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 font-semibold py-2.5 rounded-xl border border-rose-500/30 transition text-xs flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-flag"></i> Forfeit Match
+                </button>
+                <button onclick="togglePauseGame(); restartSetupWizard();" class="w-full bg-red-600/20 hover:bg-red-600/30 text-red-400 font-semibold py-2.5 rounded-xl border border-red-500/30 transition text-xs flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-sliders"></i> Exit to Setup Wizard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Forfeit Confirmation Dialog -->
+    <div id="forfeitModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-2xl p-6 shadow-2xl text-center">
+            <div class="w-16 h-16 bg-rose-500/20 text-rose-400 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border border-rose-500/30">
+                <i class="fa-solid fa-flag"></i>
+            </div>
+            <h2 class="text-xl font-black text-white mb-2">FORFEIT MATCH?</h2>
+            <p id="forfeitPromptText" class="text-xs text-slate-400 mb-6">
+                Are you sure you want to surrender? Your opponent will be declared the winner.
+            </p>
+            <div class="flex gap-3">
+                <button onclick="closeModal('forfeitModal')" class="w-1/2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2.5 rounded-xl border border-slate-700 transition text-xs">
+                    Cancel
+                </button>
+                <button onclick="confirmForfeit()" class="w-1/2 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-bold py-2.5 rounded-xl shadow-lg transition text-xs">
+                    Yes, Forfeit
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MULTI-STEP ONBOARDING CUSTOMIZATION WIZARD -->
+    <div id="wizardModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+        <div class="customizer-panel w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-2xl p-5 sm:p-7 shadow-2xl relative">
+            
+            <!-- Wizard Step Progress Bar -->
+            <div class="flex items-center justify-between mb-6 border-b border-slate-800 pb-4">
+                <div id="wizardStepIndicator" class="text-xs font-bold uppercase tracking-wider text-blue-400">
+                    Step 1 of 3: Player 1 Setup
+                </div>
+                <div class="flex gap-1.5">
+                    <div id="dotStep1" class="w-3 h-3 rounded-full bg-blue-500"></div>
+                    <div id="dotStep2" class="w-3 h-3 rounded-full bg-slate-800"></div>
+                    <div id="dotStep3" class="w-3 h-3 rounded-full bg-slate-800"></div>
+                </div>
+            </div>
+
+            <!-- WIZARD STEP 1: Player 1 Customization -->
+            <div id="wizardStep1Content" class="space-y-4">
+                <div class="text-center mb-2">
+                    <h2 class="text-xl font-black text-red-400 flex items-center justify-center gap-2">
+                        <span id="wizP1HeaderEmoji">🥊</span> Player 1 Customization
+                    </h2>
+                    <p class="text-xs text-slate-400">Select Player 1 profile & piece style</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-6">
+                    <div class="flex flex-col items-center gap-3">
+                        <div id="wizP1Preview" class="piece-preview"><span class="text-5xl">🥊</span></div>
+                        <input type="text" id="wizP1Name" value="Player 1" aria-label="Player 1 name" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-xs text-center focus:outline-none focus:border-red-400">
+                        <select id="wizP1Avatar" onchange="updateWizardHeaderEmojis()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+                            <option value="🥊">🥊 Boxer</option><option value="🔥">🔥 Flame</option><option value="🐉">🐉 Dragon</option><option value="⚡">⚡ Lightning</option><option value="🎯">🎯 Target</option>
+                        </select>
+                    </div>
+                    <div class="space-y-5">
+                        <div>
+                            <div class="customizer-section-title">Face / Piece Avatar</div>
+                            <div id="wizP1StyleGrid" class="grid grid-cols-4 sm:grid-cols-6 gap-2 max-w-xl"></div>
+                        </div>
+                        <div>
+                            <div class="customizer-section-title">Piece Color</div>
+                            <div id="wizP1PieceColors" class="flex flex-wrap gap-3"></div>
+                        </div>
+                        <div>
+                            <div class="customizer-section-title">Border Color</div>
+                            <div id="wizP1BorderColors" class="flex flex-wrap gap-3"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="goToWizardStep(2)" class="w-full mt-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2 text-sm">
+                    Next: Player 2 Setup <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <!-- WIZARD STEP 2: Player 2 Customization -->
+            <div id="wizardStep2Content" class="space-y-4 hidden">
+                <div class="text-center mb-2">
+                    <h2 class="text-xl font-black text-blue-400 flex items-center justify-center gap-2">
+                        <span id="wizP2HeaderEmoji">👑</span> Player 2 Customization
+                    </h2>
+                    <p class="text-xs text-slate-400">Select Player 2 profile & piece style</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-6">
+                    <div class="flex flex-col items-center gap-3">
+                        <div id="wizP2Preview" class="piece-preview"><span class="text-5xl">👑</span></div>
+                        <input type="text" id="wizP2Name" value="Player 2" aria-label="Player 2 name" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-xs text-center focus:outline-none focus:border-blue-400">
+                        <select id="wizP2Avatar" onchange="updateWizardHeaderEmojis()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+                            <option value="👑">👑 Crown</option><option value="💀">💀 Skull</option><option value="🐺">🐺 Wolf</option><option value="🔮">🔮 Orb</option><option value="🤖">🤖 Robot</option>
+                        </select>
+                    </div>
+                    <div class="space-y-5">
+                        <div>
+                            <div class="customizer-section-title">Face / Piece Avatar</div>
+                            <div id="wizP2StyleGrid" class="grid grid-cols-4 sm:grid-cols-6 gap-2 max-w-xl"></div>
+                        </div>
+                        <div>
+                            <div class="customizer-section-title">Piece Color</div>
+                            <div id="wizP2PieceColors" class="flex flex-wrap gap-3"></div>
+                        </div>
+                        <div>
+                            <div class="customizer-section-title">Border Color</div>
+                            <div id="wizP2BorderColors" class="flex flex-wrap gap-3"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 mt-4">
+                    <button onclick="goToWizardStep(1)" class="w-1/3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-3 rounded-xl border border-slate-700 transition text-sm">
+                        Back
+                    </button>
+                    <button onclick="goToWizardStep(3)" class="w-2/3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2 text-sm">
+                        Next: Board & Environment <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- WIZARD STEP 3: Both Players Board & Background Selection -->
+            <div id="wizardStep3Content" class="space-y-4 hidden">
+                <div class="text-center mb-2">
+                    <h2 class="text-xl font-black text-amber-400 flex items-center justify-center gap-2">
+                        🎨 Shared Board & Environment
+                    </h2>
+                    <p class="text-xs text-slate-400">Choose board color palette and background setting</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Choose Environment Location</label>
+                    <select id="wizEnvSelect" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-emerald-300 font-semibold">
+                        <option value="env-badap">🌆 Badap</option>
+                        <option value="env-universe">🌍 My Universe</option>
+                        <option value="env-mario">🍄 Mario</option>
+                        <option value="env-pacman">👾 Pac-Man</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-2">20 Board Color Palettes</label>
+                    <div id="wizPaletteGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1 custom-scrollbar"></div>
+                </div>
+
+                <div class="flex gap-2 mt-4">
+                    <button onclick="goToWizardStep(2)" class="w-1/3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-3 rounded-xl border border-slate-700 transition text-sm">
+                        Back
+                    </button>
+                    <button onclick="finishWizardAndStartGame()" class="w-2/3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2 text-sm">
+                        🚀 Start Match
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODAL: Match Statistics & Leaderboard -->
+    <div id="statsModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-trophy text-amber-400"></i> Player Statistics
+                </h2>
+                <button onclick="closeModal('statsModal')" class="text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="bg-slate-950 p-4 rounded-xl border border-red-500/30 text-center">
+                    <h3 id="p1StatsName" class="font-bold text-red-400 truncate mb-2">Player 1</h3>
+                    <div class="text-2xl font-black text-white" id="p1Wins">0</div>
+                    <div class="text-xs text-slate-500 mb-2">Total Victories</div>
+                    <div class="inline-block px-2 py-0.5 bg-red-500/10 text-red-400 text-xs rounded-full">
+                        Streak: <span id="p1Streak" class="font-bold">0</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-950 p-4 rounded-xl border border-blue-500/30 text-center">
+                    <h3 id="p2StatsName" class="font-bold text-slate-300 truncate mb-2">Player 2</h3>
+                    <div class="text-2xl font-black text-white" id="p2Wins">0</div>
+                    <div class="text-xs text-slate-500 mb-2">Total Victories</div>
+                    <div class="inline-block px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded-full">
+                        Streak: <span id="p2Streak" class="font-bold">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="clearStats()" class="w-1/2 bg-red-600/20 hover:bg-red-600/30 text-red-400 font-semibold py-2.5 rounded-xl border border-red-500/30 transition text-xs">
+                    Reset Records
+                </button>
+                <button onclick="closeModal('statsModal')" class="w-1/2 bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2.5 rounded-xl transition text-xs">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Game Rules & Instructions -->
+    <div id="instructionsModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-book-open text-blue-400"></i> Checkers Rules
+                </h2>
+                <button onclick="closeModal('instructionsModal')" class="text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <ul class="space-y-3 text-xs sm:text-sm text-slate-300 mb-6">
+                <li class="flex items-start gap-2.5">
+                    <span class="text-amber-400 font-bold">1.</span>
+                    <span><strong>Standard Movement:</strong> Regular pieces move diagonally forward one dark square at a time.</span>
+                </li>
+                <li class="flex items-start gap-2.5">
+                    <span class="text-amber-400 font-bold">2.</span>
+                    <span><strong>Capturing &amp; Multi-Jumps:</strong> Jump diagonally (forward or backward) over an adjacent opponent piece into an empty square to capture it. If another jump is available immediately from your new spot, you continue jumping!</span>
+                </li>
+                <li class="flex items-start gap-2.5">
+                    <span class="text-amber-400 font-bold">3.</span>
+                    <span><strong>Flying Kings:</strong> Reaching the far edge crowns your piece as a <strong>King</strong>, allowing long-range diagonal movement and captures across multiple empty squares.</span>
+                </li>
+                <li class="flex items-start gap-2.5">
+                    <span class="text-amber-400 font-bold">4.</span>
+                    <span><strong>Winning the Match:</strong> Capture all of your opponent's pieces before the turn timer runs out to claim victory!</span>
+                </li>
+            </ul>
+
+            <button onclick="closeModal('instructionsModal')" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-2.5 rounded-xl shadow-lg transition text-sm">
+                Got It!
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL: Victory Celebration Popup (Retro Pixel Art "YOU WIN!" Design) -->
+    <div id="victoryModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+        <div class="bg-white border-4 border-slate-900 w-full max-w-md rounded-2xl p-6 sm:p-8 shadow-[0_12px_0_#0f172a] text-center relative overflow-hidden">
+            <div class="relative z-10 flex flex-col items-center">
+                <!-- Crisp 8-Bit Golden Pixel Trophy SVG -->
+                <svg class="w-28 h-28 sm:w-32 sm:h-32 mb-4 animate-bounce" viewBox="0 0 15 14" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+                    <rect x="3" y="0" width="9" height="1" fill="#FACC15"/>
+                    <rect x="3" y="1" width="9" height="5" fill="#FACC15"/>
+                    <rect x="0" y="2" width="3" height="1" fill="#FACC15"/>
+                    <rect x="0" y="3" width="1" height="2" fill="#FACC15"/>
+                    <rect x="1" y="5" width="2" height="1" fill="#FACC15"/>
+                    <rect x="12" y="2" width="3" height="1" fill="#FACC15"/>
+                    <rect x="14" y="3" width="1" height="2" fill="#FACC15"/>
+                    <rect x="12" y="5" width="2" height="1" fill="#FACC15"/>
+                    <rect x="4" y="6" width="7" height="2" fill="#FACC15"/>
+                    <rect x="5" y="8" width="5" height="1" fill="#FACC15"/>
+                    <rect x="6" y="9" width="3" height="3" fill="#EAB308"/>
+                    <rect x="4" y="12" width="7" height="2" fill="#FACC15"/>
+                    <rect x="4" y="1" width="1" height="5" fill="#FEF9C3"/>
+                    <rect x="6" y="5" width="1" height="2" fill="#FEF9C3"/>
+                    <rect x="11" y="0" width="1" height="6" fill="#EAB308"/>
+                    <rect x="10" y="6" width="1" height="2" fill="#EAB308"/>
+                    <rect x="9" y="8" width="1" height="1" fill="#EAB308"/>
+                    <rect x="8" y="9" width="1" height="3" fill="#CA8A04"/>
+                    <rect x="10" y="12" width="1" height="2" fill="#EAB308"/>
+                </svg>
+
+                <h2 class="font-pixel-title text-2xl sm:text-4xl text-black tracking-widest mb-3" style="text-shadow: none;">
+                    YOU WIN!
+                </h2>
+
+                <h3 id="winnerNameHeading" class="font-pixel-sub text-2xl sm:text-3xl font-bold text-amber-600 uppercase tracking-wider mb-1 truncate max-w-full">
+                    Player 1 Wins!
+                </h3>
+                <p id="winnerSubtitle" class="text-xs text-slate-600 font-medium mb-5">Masterful strategy! All opposing pieces eliminated.</p>
+
+                <div class="w-full grid grid-cols-2 gap-3 bg-slate-100 p-3 rounded-xl border-2 border-slate-200 mb-5 text-xs">
+                    <div class="text-left">
+                        <span class="text-slate-500 font-semibold block">Match Duration</span>
+                        <span id="finalMatchTime" class="font-mono text-slate-900 font-bold text-sm">00:00</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-slate-500 font-semibold block">Total Victories</span>
+                        <span id="winnerTotalWins" class="text-amber-600 font-bold text-sm">0 Wins</span>
+                    </div>
+                </div>
+
+                <div class="w-full flex flex-col gap-2">
+                    <button onclick="closeModal('victoryModal'); restartGame();" class="w-full bg-amber-400 hover:bg-amber-300 text-slate-950 border-2 border-slate-900 font-bold py-3 rounded-xl shadow-[0_4px_0_#0f172a] active:translate-y-0.5 transition flex items-center justify-center gap-2 text-sm">
+                        <i class="fa-solid fa-rotate-right"></i> Play Again
+                    </button>
+                    <button onclick="closeModal('victoryModal'); openModal('statsModal');" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl transition text-xs flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-amber-400"></i> View Leaderboard
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Game Logic -->
+    <script>
+        const BOARD_SIZE = 8;
+        let boardState = [];
+        let currentPlayer = 1;
+        let selectedSquare = null;
+        let is3DMode = true;
+        let enableBoardSpin = true;
+        let soundMuted = false;
+        let bgmMuted = true;
+        let isGamePaused = false;
+        let bgmInterval = null;
+        let p2Name = "Player 2";
+        let p1Avatar = "🥊";
+        let p2Avatar = "👑";
+        let activeMultiJumpSquare = null;
+
+        let p1SelectedStyle = null;
+        let p2SelectedStyle = null;
+
+        const pieceColorOptions = ["#f8fafc","#94a3b8","#64748b","#334155","#1e293b","#0f172a","#ef4444","#f97316","#f59e0b","#eab308","#84cc16","#22c55e","#14b8a6","#06b6d4","#0ea5e9","#3b82f6","#6366f1","#8b5cf6","#a855f7","#ec4899","#f472b6","#78350f"];
+        const borderColorOptions = ["#ffffff","#cbd5e1","#64748b","#111827","#ef4444","#f97316","#facc15","#84cc16","#22c55e","#14b8a6","#06b6d4","#0ea5e9","#3b82f6","#6366f1","#a855f7","#d946ef","#ec4899","#f9a8d4"];
+        let p1PieceColor = "#dc2626", p2PieceColor = "#2563eb";
+        let p1BorderColor = "#fca5a5", p2BorderColor = "#67e8f9";
+
+        let firstBloodDrawn = false;
+        let playerKillStreaks = { 1: 0, 2: 0 };
+        let turnJumpsCount = 0;
+
+        let turnTimerInterval = null;
+        let matchTimerInterval = null;
+        let turnSeconds = 30;
+        let matchSeconds = 0;
+
+        /* Web Audio API Sound Synthesizer */
+        let audioCtx = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) {
+                    audioCtx = new AudioContext();
+                }
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function toggleSound() {
+            soundMuted = !soundMuted;
+            const soundIcon = document.getElementById("soundIcon");
+            if (soundIcon) {
+                soundIcon.className = soundMuted ? "fa-solid fa-volume-xmark text-base text-red-400" : "fa-solid fa-volume-high text-base";
+            }
+        }
+
+        function toggleBGM() {
+            bgmMuted = !bgmMuted;
+            const bgmText = document.getElementById("bgmText");
+            const bgmIcon = document.getElementById("bgmIcon");
+            if (bgmText) bgmText.innerText = bgmMuted ? "BGM: OFF" : "BGM: ON";
+            if (bgmIcon) bgmIcon.className = bgmMuted ? "fa-solid fa-music text-base opacity-50" : "fa-solid fa-music text-base text-pink-400 animate-pulse";
+
+            if (!bgmMuted) {
+                startBGMSequence();
+            } else {
+                stopBGMSequence();
+            }
+        }
+
+        function startBGMSequence() {
+            stopBGMSequence();
+            // Upbeat retro arcade 8-bit arpeggio background loop
+            const melody = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 440.00, 523.25];
+            let noteIdx = 0;
+            bgmInterval = setInterval(() => {
+                if (bgmMuted || isGamePaused) return;
+                try {
+                    const ctx = getAudioContext();
+                    if (!ctx) return;
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(melody[noteIdx], ctx.currentTime);
+                    gain.gain.setValueAtTime(0.03, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.2);
+                    noteIdx = (noteIdx + 1) % melody.length;
+                } catch (e) {
+                    console.warn("BGM error:", e);
+                }
+            }, 250);
+        }
+
+        function stopBGMSequence() {
+            if (bgmInterval) {
+                clearInterval(bgmInterval);
+                bgmInterval = null;
+            }
+        }
+
+        function playSynthesizedSound(type) {
+            if (soundMuted) return;
+            try {
+                const ctx = getAudioContext();
+                if (!ctx) return;
+
+                const now = ctx.currentTime;
+
+                if (type === 'eat') {
+                    // Classic Roblox "Oof" / "Ugh" downward pitch-shifted synth tone
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(320, now);
+                    osc.frequency.exponentialRampToValueAtTime(110, now + 0.22);
+                    gain.gain.setValueAtTime(0.4, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                    return;
+                }
+
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                if (type === 'select') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.exponentialRampToValueAtTime(600, now + 0.08);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'move') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.exponentialRampToValueAtTime(110, now + 0.1);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } else if (type === 'king') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.1);
+                    osc.frequency.setValueAtTime(783.99, now + 0.2);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                    osc.start(now);
+                    osc.stop(now + 0.35);
+                } else if (type === 'tick') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(800, now);
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+                    osc.start(now);
+                    osc.stop(now + 0.04);
+                } else if (type === 'win') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.setValueAtTime(554.37, now + 0.15);
+                    osc.frequency.setValueAtTime(659.25, now + 0.3);
+                    osc.frequency.setValueAtTime(880, now + 0.45);
+                    gain.gain.setValueAtTime(0.4, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
+                    osc.start(now);
+                    osc.stop(now + 0.7);
+                }
+            } catch (e) {
+                console.warn("Audio error:", e);
+            }
+        }
+
+        function triggerEatingAnnouncer() {
+            const phrases = ["CHOMP!", "CAPTURED!", "TAKEN!", "ZAP!", "EATEN!"];
+            const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
+            triggerAnnouncerBanner(randomPhrase, "from-rose-600 to-red-600");
+        }
+
+        function togglePauseGame() {
+            isGamePaused = !isGamePaused;
+            const pauseModal = document.getElementById("pauseModal");
+            const pauseIcon = document.getElementById("pauseIcon");
+            const pauseText = document.getElementById("pauseText");
+
+            if (isGamePaused) {
+                if (pauseModal) pauseModal.classList.remove("hidden");
+                if (pauseIcon) pauseIcon.className = "fa-solid fa-play text-base";
+                if (pauseText) pauseText.innerText = "Resume";
+            } else {
+                if (pauseModal) pauseModal.classList.add("hidden");
+                if (pauseIcon) pauseIcon.className = "fa-solid fa-pause text-base";
+                if (pauseText) pauseText.innerText = "Pause";
+            }
+        }
+
+        function triggerAnnouncerBanner(text, gradientClasses) {
+            const container = document.getElementById("announcerContainer");
+            if (!container) return;
+            const banner = document.createElement("div");
+            banner.className = `announcer-banner absolute px-6 py-3 rounded-2xl bg-gradient-to-r ${gradientClasses} text-white font-black shadow-2xl border-2 border-white/30 flex items-center justify-center text-lg sm:text-xl uppercase tracking-wider`;
+            banner.innerText = text;
+            container.appendChild(banner);
+            setTimeout(() => { if (banner && banner.parentNode) banner.parentNode.removeChild(banner); }, 1800);
+        }
+
+        /* 4 Custom Character Piece Style Options */
+        const pieceStyles = [
+            { 
+                id: "jake", 
+                name: "Jake", 
+                classP1: "bg-amber-500 border-2 border-red-400 ring-2 ring-red-500/70 text-white font-bold", 
+                classP2: "bg-amber-500 border-2 border-cyan-300 ring-2 ring-blue-500/70 text-white font-bold" 
+            },
+            { 
+                id: "kirby", 
+                name: "Kirby", 
+                classP1: "bg-pink-300 border-2 border-rose-400 ring-2 ring-red-500/70 text-white font-bold", 
+                classP2: "bg-pink-300 border-2 border-cyan-300 ring-2 ring-blue-500/70 text-white font-bold" 
+            },
+            { 
+                id: "sonic", 
+                name: "Sonic", 
+                classP1: "bg-sky-600 border-2 border-red-400 ring-2 ring-red-500/70 text-white font-bold", 
+                classP2: "bg-sky-600 border-2 border-cyan-300 ring-2 ring-blue-500/70 text-white font-bold" 
+            },
+            { 
+                id: "badtz", 
+                name: "Badtz-Maru", 
+                classP1: "bg-slate-500 border-2 border-red-400 ring-2 ring-red-500/70 text-white font-bold", 
+                classP2: "bg-slate-500 border-2 border-cyan-300 ring-2 ring-blue-500/70 text-white font-bold" 
+            }
+        ];
+
+        const colorPalettes = [
+            { name: "Classic Wood", light: "#e2d6b5", dark: "#855829" },
+            { name: "Obsidian & Crimson", light: "#334155", dark: "#991b1b" },
+            { name: "Emerald & Gold", light: "#fef08a", dark: "#065f46" },
+            { name: "Cyberpunk Neon", light: "#38bdf8", dark: "#c084fc" },
+            { name: "Pastel Pink", light: "#fbcfe8", dark: "#db2777" },
+            { name: "Slate & Ice", light: "#e2e8f0", dark: "#475569" },
+            { name: "Midnight Blue", light: "#93c5fd", dark: "#1e3a8a" },
+            { name: "Sunset Amber", light: "#fef3c7", dark: "#d97706" },
+            { name: "Royal Purple", light: "#e9d5ff", dark: "#6b21a8" },
+            { name: "Forest Moss", light: "#dcfce7", dark: "#14532d" },
+            { name: "Warm Terracotta", light: "#ffedd5", dark: "#c2410c" },
+            { name: "Mocha Coffee", light: "#f5f5f4", dark: "#78350f" },
+            { name: "Navy & Mint", light: "#a7f3d0", dark: "#0f172a" },
+            { name: "Silver & Charcoal", light: "#f1f5f9", dark: "#334155" },
+            { name: "Rose Gold", light: "#ffe4e6", dark: "#9f1239" },
+            { name: "Lava & Ash", light: "#fb923c", dark: "#18181b" },
+            { name: "Seafoam", light: "#ccfbf1", dark: "#115e59" },
+            { name: "Galaxy Violet", light: "#ddd6fe", dark: "#4c1d95" },
+            { name: "Autumn Leaves", light: "#fef08a", dark: "#9a3412" },
+            { name: "Monochrome High", light: "#ffffff", dark: "#000000" }
+        ];
+        let currentPalette = colorPalettes[0];
+
+        function getPieceCharacterSVG(styleId) {
+            switch (styleId) {
+                case 'jake':
+                    return `
+                        <svg viewBox="0 0 100 100" class="w-full h-full rounded-full">
+                            <circle cx="50" cy="50" r="50" fill="#f59e0b"/>
+                            <circle cx="30" cy="43" r="15" fill="#0f172a"/>
+                            <circle cx="28" cy="41" r="11" fill="#ffffff"/>
+                            <circle cx="70" cy="43" r="15" fill="#0f172a"/>
+                            <circle cx="72" cy="41" r="11" fill="#ffffff"/>
+                            <path d="M 38 62 Q 50 82 62 62 Z" fill="#450a0a" stroke="#0f172a" stroke-width="3"/>
+                            <polygon points="41,63 45,69 49,63" fill="#ffffff"/>
+                            <polygon points="51,63 55,69 59,63" fill="#ffffff"/>
+                            <ellipse cx="47" cy="72" rx="5" ry="3" fill="#f472b6"/>
+                            <path d="M 32 72 C 28 50, 72 50, 68 72 C 67 79, 59 79, 58 70 L 58 61 L 42 61 L 42 70 C 41 79, 33 79, 32 72 Z" fill="#f59e0b" stroke="#0f172a" stroke-width="4" stroke-linejoin="round"/>
+                            <ellipse cx="50" cy="57" rx="7" ry="4.5" fill="#0f172a"/>
+                        </svg>`;
+                case 'kirby':
+                    return `
+                        <svg viewBox="0 0 100 100" class="w-full h-full rounded-full">
+                            <circle cx="50" cy="50" r="50" fill="#f9a8d4"/>
+                            <ellipse cx="22" cy="58" rx="9" ry="5" fill="#ec4899"/>
+                            <ellipse cx="78" cy="58" rx="9" ry="5" fill="#ec4899"/>
+                            <ellipse cx="38" cy="41" rx="6.5" ry="14" fill="#0f172a"/>
+                            <ellipse cx="38" cy="46" rx="4.5" ry="7" fill="#0284c7"/>
+                            <ellipse cx="38" cy="35" rx="4" ry="6" fill="#ffffff"/>
+                            <ellipse cx="62" cy="41" rx="6.5" ry="14" fill="#0f172a"/>
+                            <ellipse cx="62" cy="46" rx="4.5" ry="7" fill="#0284c7"/>
+                            <ellipse cx="62" cy="35" rx="4" ry="6" fill="#ffffff"/>
+                            <path d="M 43 62 Q 50 69 57 62" fill="none" stroke="#0f172a" stroke-width="3.5" stroke-linecap="round"/>
+                        </svg>`;
+                case 'sonic':
+                    return `
+                        <svg viewBox="0 0 100 100" class="w-full h-full rounded-full">
+                            <circle cx="50" cy="50" r="48" fill="#0284c7" stroke="#facc15" stroke-width="9"/>
+                            <path d="M 24 38 L 16 20 L 38 26 L 52 14 L 58 28 L 76 34 L 68 48 L 78 58 L 62 66 L 34 66 L 20 54 Z" fill="#1d4ed8"/>
+                            <ellipse cx="50" cy="58" rx="18" ry="11" fill="#fed7aa"/>
+                            <path d="M 33 48 Q 42 32 50 46 Q 58 32 67 48 Z" fill="#ffffff"/>
+                            <ellipse cx="44" cy="45" rx="2.5" ry="5" fill="#16a34a"/>
+                            <ellipse cx="56" cy="45" rx="2.5" ry="5" fill="#16a34a"/>
+                            <ellipse cx="50" cy="53" rx="4" ry="2.5" fill="#0f172a"/>
+                            <path d="M 42 61 Q 50 66 58 59" fill="none" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round"/>
+                        </svg>`;
+                case 'badtz':
+                default:
+                    return `
+                        <svg viewBox="0 0 100 100" class="w-full h-full rounded-full">
+                            <circle cx="50" cy="50" r="50" fill="#64748b"/>
+                            <circle cx="20" cy="25" r="2.5" fill="#cbd5e1"/><circle cx="80" cy="25" r="2.5" fill="#cbd5e1"/>
+                            <circle cx="15" cy="55" r="2.5" fill="#cbd5e1"/><circle cx="85" cy="55" r="2.5" fill="#cbd5e1"/>
+                            <circle cx="25" cy="82" r="2.5" fill="#cbd5e1"/><circle cx="75" cy="82" r="2.5" fill="#cbd5e1"/>
+                            <path d="M 26 42 L 24 26 L 38 33 L 50 22 L 62 33 L 76 26 L 74 42 Q 80 65 65 76 Q 50 82 35 76 Q 20 65 26 42 Z" fill="#18181b" stroke="#ffffff" stroke-width="3.5" stroke-linejoin="round"/>
+                            <path d="M 31 48 L 47 48 A 8 8 0 0 1 31 48 Z" fill="#fefce8"/>
+                            <circle cx="41" cy="50" r="2.5" fill="#18181b"/>
+                            <path d="M 53 48 L 69 48 A 8 8 0 0 1 53 48 Z" fill="#fefce8"/>
+                            <circle cx="59" cy="50" r="2.5" fill="#18181b"/>
+                            <polygon points="50,56 42,64 58,64" fill="#fde047"/>
+                            <polygon points="50,67 43,64 57,64" fill="#eab308"/>
+                        </svg>`;
+            }
+        }
+
+        function startFromHomeScreen() {
+            const home = document.getElementById("homeScreenModal");
+            if (home) home.classList.add("hidden");
+            openModal("wizardModal");
+            p1SelectedStyle = p1SelectedStyle || pieceStyles[0];
+            p2SelectedStyle = p2SelectedStyle || pieceStyles[1];
+            renderWizardPieceOptions();
+            renderWizardPaletteOptions();
+        }
+
+        function goToWizardStep(step) {
+            for (let i = 1; i <= 3; i++) {
+                const content = document.getElementById(`wizardStep${i}Content`);
+                if (content) content.classList.add("hidden");
+                const dot = document.getElementById(`dotStep${i}`);
+                if (dot) dot.className = "w-3 h-3 rounded-full bg-slate-800";
+            }
+            const activeDot = document.getElementById(`dotStep${step}`);
+            if (activeDot) activeDot.className = "w-3 h-3 rounded-full bg-blue-500";
+            
+            const stepTitles = [
+                "Step 1 of 3: Player 1 Setup",
+                "Step 2 of 3: Player 2 Setup",
+                "Step 3 of 3: Board & Environment"
+            ];
+            document.getElementById("wizardStepIndicator").innerText = stepTitles[step - 1];
+            document.getElementById(`wizardStep${step}Content`).classList.remove("hidden");
+        }
+
+        function updateWizardHeaderEmojis() {
+            const p1Emoji = document.getElementById("wizP1Avatar")?.value || "🥊";
+            const p2Emoji = document.getElementById("wizP2Avatar")?.value || "👑";
+            const p1Header = document.getElementById("wizP1HeaderEmoji");
+            const p2Header = document.getElementById("wizP2HeaderEmoji");
+            if (p1Header) p1Header.innerText = p1Emoji;
+            if (p2Header) p2Header.innerText = p2Emoji;
+        }
+
+        function renderWizardPieceOptions() {
+            const configs = [
+                { player: 1, gridId: "wizP1StyleGrid", colorId: "wizP1PieceColors", borderId: "wizP1BorderColors",
+                  previewId: "wizP1Preview", selected: p1SelectedStyle, pieceColor: p1PieceColor, borderColor: p1BorderColor },
+                { player: 2, gridId: "wizP2StyleGrid", colorId: "wizP2PieceColors", borderId: "wizP2BorderColors",
+                  previewId: "wizP2Preview", selected: p2SelectedStyle, pieceColor: p2PieceColor, borderColor: p2BorderColor }
+            ];
+
+            configs.forEach(cfg => {
+                const grid = document.getElementById(cfg.gridId);
+                const colorGrid = document.getElementById(cfg.colorId);
+                const borderGrid = document.getElementById(cfg.borderId);
+                if (!grid || !colorGrid || !borderGrid) return;
+                grid.innerHTML = "";
+                colorGrid.innerHTML = "";
+                borderGrid.innerHTML = "";
+
+                pieceStyles.forEach(style => {
+                    const tile = document.createElement("button");
+                    tile.type = "button";
+                    tile.title = style.name;
+                    tile.setAttribute("aria-label", style.name);
+                    tile.className = `face-option rounded-lg ${cfg.selected?.id === style.id ? "selected" : ""}`;
+                    tile.innerHTML = getPieceCharacterSVG(style.id);
+                    tile.onclick = () => {
+                        if (cfg.player === 1) p1SelectedStyle = style;
+                        else p2SelectedStyle = style;
+                        renderWizardPieceOptions();
+                    };
+                    grid.appendChild(tile);
+                });
+
+                pieceColorOptions.forEach(color => {
+                    const swatch = document.createElement("button");
+                    swatch.type = "button";
+                    swatch.className = `custom-swatch rounded-sm ${cfg.pieceColor === color ? "selected" : ""}`;
+                    swatch.style.backgroundColor = color;
+                    swatch.title = `Piece color ${color}`;
+                    swatch.setAttribute("aria-label", `Piece color ${color}`);
+                    swatch.onclick = () => {
+                        if (cfg.player === 1) p1PieceColor = color;
+                        else p2PieceColor = color;
+                        renderWizardPieceOptions();
+                    };
+                    colorGrid.appendChild(swatch);
+                });
+
+                borderColorOptions.forEach(color => {
+                    const swatch = document.createElement("button");
+                    swatch.type = "button";
+                    swatch.className = `custom-swatch rounded-sm ${cfg.borderColor === color ? "selected" : ""}`;
+                    swatch.style.backgroundColor = color;
+                    swatch.title = `Border color ${color}`;
+                    swatch.setAttribute("aria-label", `Border color ${color}`);
+                    swatch.onclick = () => {
+                        if (cfg.player === 1) p1BorderColor = color;
+                        else p2BorderColor = color;
+                        renderWizardPieceOptions();
+                    };
+                    borderGrid.appendChild(swatch);
+                });
+
+                const preview = document.getElementById(cfg.previewId);
+                if (preview) {
+                    preview.style.backgroundColor = cfg.pieceColor;
+                    preview.style.borderColor = cfg.borderColor;
+                    preview.innerHTML = getPieceCharacterSVG(cfg.selected?.id || (cfg.player === 1 ? "jake" : "kirby"));
+                }
+            });
+        }
+
+        function renderWizardPaletteOptions() {
+            const grid = document.getElementById("wizPaletteGrid");
+            if (!grid) return;
+            grid.innerHTML = "";
+
+            colorPalettes.forEach(palette => {
+                const isSelected = currentPalette.name === palette.name;
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = `p-2 rounded-xl border text-left transition flex flex-col gap-1.5 ${isSelected ? "bg-amber-500/20 border-amber-400 text-white shadow-md" : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-600"}`;
+                btn.innerHTML = `
+                    <div class="flex w-full h-4 rounded overflow-hidden border border-white/10">
+                        <div class="w-1/2 h-full" style="background-color: ${palette.light};"></div>
+                        <div class="w-1/2 h-full" style="background-color: ${palette.dark};"></div>
+                    </div>
+                    <span class="text-[10px] font-bold truncate w-full">${palette.name}</span>
+                `;
+                btn.onclick = () => {
+                    currentPalette = palette;
+                    renderWizardPaletteOptions();
+                };
+                grid.appendChild(btn);
+            });
+        }
+
+        function finishWizardAndStartGame() {
+            p1Name = document.getElementById("wizP1Name").value.trim() || "Player 1";
+            p2Name = document.getElementById("wizP2Name").value.trim() || "Player 2";
+            p1Avatar = document.getElementById("wizP1Avatar").value;
+            p2Avatar = document.getElementById("wizP2Avatar").value;
+            const selectedEnv = document.getElementById("wizEnvSelect").value;
+
+            document.getElementById("p1NameDisplay").innerText = p1Name;
+            document.getElementById("p2NameDisplay").innerText = p2Name;
+            document.getElementById("p1AvatarDisplay").innerText = p1Avatar;
+            document.getElementById("p2AvatarDisplay").innerText = p2Avatar;
+            document.getElementById("p1StatsName").innerText = p1Name;
+            document.getElementById("p2StatsName").innerText = p2Name;
+
+            changeEnvironment(selectedEnv);
+            closeModal("wizardModal");
+
+            currentPlayer = 1;
+            isGamePaused = false;
+            restartGame();
+        }
+
+        function changeEnvironment(envClass) {
+            const body = document.getElementById("envBody");
+            const wrapper = document.getElementById("tableAndBoardWrapper");
+            const backdrop = document.getElementById("customThemeBackdrop");
+            const mainHeader = document.getElementById("mainHeader");
+            const p1Card = document.getElementById("p1Card");
+            const p2Card = document.getElementById("p2Card");
+
+            body.className = `${envClass} flex flex-col min-h-screen justify-between items-center p-2 sm:p-4 relative transition-all duration-700`;
+
+            wrapper.classList.remove("table-theme-badap", "table-theme-universe", "table-theme-mario", "table-theme-pacman");
+            if (mainHeader) mainHeader.className = `w-full max-w-6xl flex flex-wrap justify-between items-center gap-4 hud-panel-${envClass.replace('env-', '')} backdrop-blur-md p-4 rounded-2xl border shadow-xl mb-2 z-10 transition-all duration-500`;
+
+            if (p1Card) {
+                p1Card.classList.remove("hud-panel-badap", "hud-panel-universe", "hud-panel-mario", "hud-panel-pacman");
+                p1Card.classList.add(`hud-panel-${envClass.replace('env-', '')}`);
+            }
+            if (p2Card) {
+                p2Card.classList.remove("hud-panel-badap", "hud-panel-universe", "hud-panel-mario", "hud-panel-pacman");
+                p2Card.classList.add(`hud-panel-${envClass.replace('env-', '')}`);
+            }
+
+            if (backdrop) backdrop.innerHTML = "";
+
+            switch (envClass) {
+                case "env-universe":
+                    wrapper.classList.add("table-theme-universe");
+                    if (backdrop) {
+                        backdrop.innerHTML = `
+                            <div class="absolute inset-0 flex items-center justify-center opacity-45 pointer-events-none">
+                                <svg class="w-80 h-80 sm:w-[460px] sm:h-[460px]" viewBox="0 0 16 16" shape-rendering="crispEdges">
+                                    <rect x="5" y="1" width="6" height="1" fill="#06b6d4"/>
+                                    <rect x="3" y="2" width="10" height="2" fill="#06b6d4"/>
+                                    <rect x="2" y="4" width="12" height="8" fill="#0284c7"/>
+                                    <rect x="3" y="12" width="10" height="2" fill="#06b6d4"/>
+                                    <rect x="5" y="14" width="6" height="1" fill="#06b6d4"/>
+                                    <rect x="4" y="3" width="3" height="3" fill="#65a30d"/>
+                                    <rect x="3" y="6" width="4" height="4" fill="#84cc16"/>
+                                    <rect x="9" y="5" width="4" height="3" fill="#65a30d"/>
+                                    <rect x="10" y="8" width="3" height="3" fill="#84cc16"/>
+                                    <rect x="2" y="5" width="5" height="1" fill="#ffffff"/>
+                                    <rect x="10" y="3" width="4" height="1" fill="#ffffff"/>
+                                    <rect x="9" y="11" width="5" height="1" fill="#ffffff"/>
+                                </svg>
+                            </div>
+                        `;
+                    }
+                    break;
+                case "env-mario":
+                    wrapper.classList.add("table-theme-mario");
+                    if (backdrop) {
+                        backdrop.innerHTML = `
+                            <div class="absolute top-24 left-8 sm:left-16 flex gap-1 opacity-85 pointer-events-none">
+                                <div class="w-8 h-8 bg-amber-700 border-2 border-amber-950"></div>
+                                <div class="w-8 h-8 bg-yellow-400 border-2 border-amber-950 flex items-center justify-center text-amber-950 font-black text-xs">?</div>
+                                <div class="w-8 h-8 bg-amber-700 border-2 border-amber-950"></div>
+                            </div>
+                            <div class="absolute top-32 right-8 sm:right-20 flex gap-2 opacity-85 pointer-events-none">
+                                <div class="w-6 h-8 rounded-full bg-yellow-300 border-2 border-amber-600"></div>
+                                <div class="w-6 h-8 rounded-full bg-yellow-300 border-2 border-amber-600"></div>
+                            </div>
+                            <div class="absolute bottom-8 left-6 sm:left-14 w-14 h-20 bg-emerald-600 border-4 border-emerald-950 rounded-t-md opacity-90 pointer-events-none"></div>
+                            <div class="absolute bottom-8 right-6 sm:right-14 w-14 h-24 bg-emerald-600 border-4 border-emerald-950 rounded-t-md opacity-90 pointer-events-none"></div>
+                        `;
+                    }
+                    break;
+                case "env-pacman":
+                    wrapper.classList.add("table-theme-pacman");
+                    if (backdrop) {
+                        backdrop.innerHTML = `
+                            <div class="absolute inset-4 sm:inset-8 border-4 border-blue-600 rounded-2xl shadow-[0_0_25px_rgba(37,99,235,0.6)] opacity-60 pointer-events-none"></div>
+                            <div class="absolute top-24 left-10 text-2xl sm:text-3xl opacity-80 pointer-events-none">🟡 • • • 👻</div>
+                            <div class="absolute bottom-14 right-10 text-2xl sm:text-3xl opacity-80 pointer-events-none">🍒 • • 👾</div>
+                        `;
+                    }
+                    break;
+                case "env-badap":
+                default:
+                    wrapper.classList.add("table-theme-badap");
+                    if (backdrop) {
+                        backdrop.innerHTML = `
+                            <div class="absolute inset-0 overflow-hidden pointer-events-none">
+                                <div class="absolute top-16 left-8 sm:left-24 w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-amber-300 via-rose-500 to-purple-950 shadow-[0_0_25px_rgba(244,63,94,0.45)] opacity-85">
+                                    <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-[#0c0622] -translate-x-1.5 -translate-y-1"></div>
+                                </div>
+                                <div class="absolute top-[22%] left-1/2 -translate-x-1/2 w-56 h-56 sm:w-80 sm:h-80 rounded-full shadow-[0_0_80px_rgba(251,113,133,0.75)]"
+                                     style="background: repeating-linear-gradient(180deg, #fde047 0px, #fb923c 10px, #f43f5e 18px, transparent 18px, transparent 23px);">
+                                </div>
+                                <svg class="absolute bottom-[36%] left-0 w-full h-32 sm:h-44 opacity-90" viewBox="0 0 1200 200" preserveAspectRatio="none">
+                                    <polygon points="0,200 0,140 160,115 320,130 480,165 680,165 820,95 960,110 1100,90 1200,120 1200,200" fill="#180836" stroke="#a855f7" stroke-width="2.5"/>
+                                </svg>
+                                <div class="absolute bottom-0 inset-x-0 h-[38%] border-t-2 border-fuchsia-400 shadow-[0_-10px_30px_rgba(232,121,249,0.6)]"
+                                     style="background-color: #07091f;
+                                            background-image: 
+                                                linear-gradient(to right, rgba(56, 189, 248, 0.55) 2px, transparent 2px),
+                                                linear-gradient(to bottom, rgba(59, 130, 246, 0.65) 2px, transparent 2px);
+                                            background-size: 64px 32px;
+                                            transform: perspective(380px) rotateX(62deg);
+                                            transform-origin: top center;">
+                                </div>
+                            </div>
+                        `;
+                    }
+                    break;
+            }
+        }
+
+        function restartSetupWizard() {
+            goToWizardStep(1);
+            openModal("wizardModal");
+            p1SelectedStyle = p1SelectedStyle || pieceStyles[0];
+            p2SelectedStyle = p2SelectedStyle || pieceStyles[1];
+            renderWizardPieceOptions();
+            renderWizardPaletteOptions();
+        }
+
+        function openForfeitModal() {
+            const forfeitingPlayerName = currentPlayer === 1 ? p1Name : p2Name;
+            const opponentName = currentPlayer === 1 ? p2Name : p1Name;
+            const promptEl = document.getElementById("forfeitPromptText");
+            if (promptEl) {
+                promptEl.innerText = `${forfeitingPlayerName}, are you sure you want to forfeit? ${opponentName} will win the match!`;
+            }
+            openModal("forfeitModal");
+        }
+
+        function confirmForfeit() {
+            closeModal("forfeitModal");
+            const winnerId = currentPlayer === 1 ? 2 : 1;
+            const winnerName = winnerId === 1 ? p1Name : p2Name;
+            const forfeitingPlayerName = currentPlayer === 1 ? p1Name : p2Name;
+
+            handleVictory(winnerId, winnerName);
+            const subtitleEl = document.getElementById("winnerSubtitle");
+            if (subtitleEl) {
+                subtitleEl.innerText = `${forfeitingPlayerName} forfeited the match! ${winnerName} claims victory.`;
+            }
+        }
+
+        function initBoardState() {
+            boardState = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null));
+            firstBloodDrawn = false;
+            playerKillStreaks = { 1: 0, 2: 0 };
+            turnJumpsCount = 0;
+            activeMultiJumpSquare = null;
+            selectedSquare = null;
+
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    if ((r + c) % 2 === 1) boardState[r][c] = 2;
+                }
+            }
+            for (let r = 5; r < 8; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    if ((r + c) % 2 === 1) boardState[r][c] = 1;
+                }
+            }
+        }
+
+        function renderBoard() {
+            const container = document.getElementById("boardContainer");
+            if (!container) return;
+            container.innerHTML = "";
+
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    const isDarkSquare = (r + c) % 2 === 1;
+                    const squareDiv = document.createElement("div");
+                    
+                    squareDiv.className = `relative flex items-center justify-center transition-all duration-200 overflow-hidden`;
+                    squareDiv.style.backgroundColor = isDarkSquare ? currentPalette.dark : currentPalette.light;
+
+                    if (selectedSquare && selectedSquare.row === r && selectedSquare.col === c) {
+                        squareDiv.classList.add("square-selected");
+                    }
+
+                    squareDiv.onclick = function() {
+                        if (!isGamePaused) handleSquareClick(r, c);
+                    };
+
+                    const pieceValue = boardState[r][c];
+                    if (pieceValue !== null) {
+                        const pieceDiv = document.createElement("div");
+                        const isP1 = Math.floor(pieceValue) === 1;
+                        const isKing = pieceValue % 1 !== 0;
+                        const activeStyle = isP1 ? (p1SelectedStyle || pieceStyles[0]) : (p2SelectedStyle || pieceStyles[1]);
+                        const pieceClass = isP1 ? activeStyle.classP1 : activeStyle.classP2;
+
+                        pieceDiv.className = `piece w-[82%] h-[82%] rounded-full flex items-center justify-center font-bold cursor-pointer overflow-hidden relative border-[4px] ${is3DMode ? 'piece-3d-layer' : ''}`;
+                        pieceDiv.style.backgroundColor = isP1 ? p1PieceColor : p2PieceColor;
+                        pieceDiv.style.borderColor = isP1 ? p1BorderColor : p2BorderColor;
+                        pieceDiv.style.boxShadow = `0 0 12px ${isP1 ? p1BorderColor : p2BorderColor}88, 0 8px 14px rgba(0,0,0,.45)`;
+
+                        const pieceContent = document.createElement("div");
+                        pieceContent.className = "piece-content relative flex items-center justify-center w-full h-full rounded-full overflow-hidden";
+
+                        if (isKing) {
+                            pieceContent.innerHTML = `
+                                <div class="w-full h-full opacity-90">${getPieceCharacterSVG(activeStyle.id)}</div>
+                                <div class="absolute inset-0 flex items-center justify-center bg-black/25">
+                                    <i class="fa-solid fa-crown text-amber-300 text-sm sm:text-lg drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] animate-pulse"></i>
+                                </div>
+                            `;
+                        } else {
+                            pieceContent.innerHTML = getPieceCharacterSVG(activeStyle.id);
+                        }
+
+                        pieceDiv.appendChild(pieceContent);
+                        squareDiv.appendChild(pieceDiv);
+                    }
+
+                    container.appendChild(squareDiv);
+                }
+            }
+        }
+
+        function handleSquareClick(r, c) {
+            const clickedPiece = boardState[r][c];
+
+            if (activeMultiJumpSquare) {
+                if (selectedSquare && selectedSquare.row === r && selectedSquare.col === c) return;
+                if (canMoveOrJump(selectedSquare.row, selectedSquare.col, r, c, true)) {
+                    executeMove(selectedSquare.row, selectedSquare.col, r, c);
+                }
+                return;
+            }
+
+            if (clickedPiece !== null && Math.floor(clickedPiece) === currentPlayer) {
+                selectedSquare = { row: r, col: c };
+                playSynthesizedSound('select');
+                renderBoard();
+                return;
+            }
+
+            if (selectedSquare && clickedPiece === null) {
+                const startR = selectedSquare.row;
+                const startC = selectedSquare.col;
+
+                if (canMoveOrJump(startR, startC, r, c, false)) {
+                    executeMove(startR, startC, r, c);
+                } else {
+                    selectedSquare = null;
+                    renderBoard();
+                }
+            }
+        }
+
+        function canMoveOrJump(fromR, fromC, toR, toC, forceJumpOnly) {
+            const piece = boardState[fromR][fromC];
+            if (!piece) return false;
+
+            const isP1 = Math.floor(piece) === 1;
+            const isKing = piece % 1 !== 0;
+            const rowDiff = toR - fromR;
+            const colDiff = toC - fromC;
+
+            if (boardState[toR][toC] !== null) return false;
+            if (Math.abs(rowDiff) !== Math.abs(colDiff)) return false;
+
+            const rDir = rowDiff > 0 ? 1 : -1;
+            const cDir = colDiff > 0 ? 1 : -1;
+
+            if (isKing) {
+                let enemyCount = 0;
+                let steps = Math.abs(rowDiff);
+
+                for (let i = 1; i < steps; i++) {
+                    const checkR = fromR + i * rDir;
+                    const checkC = fromC + i * cDir;
+                    const spot = boardState[checkR][checkC];
+
+                    if (spot !== null) {
+                        if (Math.floor(spot) === currentPlayer) return false;
+                        else enemyCount++;
+                    }
+                }
+
+                if (enemyCount === 0) {
+                    if (forceJumpOnly) return false;
+                    return true;
+                } else if (enemyCount === 1) {
+                    return true;
+                } else {
+                    return false;
+                }
+            } else {
+                if (Math.abs(rowDiff) === 1 && Math.abs(colDiff) === 1) {
+                    if (forceJumpOnly) return false;
+                    if (isP1 && rowDiff >= 0) return false;
+                    if (!isP1 && rowDiff <= 0) return false;
+                    return true;
+                }
+
+                if (Math.abs(rowDiff) === 2 && Math.abs(colDiff) === 2) {
+                    const midR = (fromR + toR) / 2;
+                    const midC = (fromC + toC) / 2;
+                    const midPiece = boardState[midR][midC];
+
+                    if (midPiece !== null && Math.floor(midPiece) !== currentPlayer) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function executeMove(fromR, fromC, toR, toC) {
+            const piece = boardState[fromR][fromC];
+            const isKing = piece % 1 !== 0;
+            const rowDiff = toR - fromR;
+            const rDir = rowDiff > 0 ? 1 : -1;
+            const cDir = (toC - fromC) > 0 ? 1 : -1;
+
+            let isJump = false;
+            let capturedR = -1;
+            let capturedC = -1;
+
+            if (isKing) {
+                let steps = Math.abs(rowDiff);
+                for (let i = 1; i < steps; i++) {
+                    const checkR = fromR + i * rDir;
+                    const checkC = fromC + i * cDir;
+                    if (boardState[checkR][checkC] !== null) {
+                        isJump = true;
+                        capturedR = checkR;
+                        capturedC = checkC;
+                        break;
+                    }
+                }
+            } else if (Math.abs(rowDiff) === 2) {
+                isJump = true;
+                capturedR = (fromR + toR) / 2;
+                capturedC = (fromC + toC) / 2;
+            }
+
+            boardState[toR][toC] = piece;
+            boardState[fromR][fromC] = null;
+
+            if (isJump && capturedR !== -1) {
+                boardState[capturedR][capturedC] = null;
+                turnJumpsCount++;
+                playerKillStreaks[currentPlayer]++;
+
+                const rect = document.getElementById("boardContainer").getBoundingClientRect();
+                const targetX = rect.left + (capturedC + 0.5) * (rect.width / 8);
+                const targetY = rect.top + (capturedR + 0.5) * (rect.height / 8);
+                spawnParticleExplosion(targetX, targetY, currentPlayer === 1 ? '#ef4444' : '#38bdf8');
+
+                playSynthesizedSound('eat');
+                triggerEatingAnnouncer();
+            } else {
+                playSynthesizedSound('move');
+            }
+
+            let promoted = false;
+            if (Math.floor(piece) === 1 && toR === 0 && piece % 1 === 0) {
+                boardState[toR][toC] = 1.5;
+                promoted = true;
+            } else if (Math.floor(piece) === 2 && toR === 7 && piece % 1 === 0) {
+                boardState[toR][toC] = 2.5;
+                promoted = true;
+            }
+
+            if (promoted) {
+                playSynthesizedSound('king');
+                triggerAnnouncerBanner("CROWNED KING!", "from-amber-400 to-yellow-600");
+            }
+
+            if (!promoted && isJump && hasFurtherJumps(toR, toC)) {
+                activeMultiJumpSquare = { row: toR, col: toC };
+                selectedSquare = { row: toR, col: toC };
+                renderBoard();
+                return;
+            }
+
+            activeMultiJumpSquare = null;
+            selectedSquare = null;
+            turnJumpsCount = 0;
+            switchTurn();
+        }
+
+        function hasFurtherJumps(r, c) {
+            const piece = boardState[r][c];
+            if (!piece) return false;
+            const isKing = piece % 1 !== 0;
+
+            if (isKing) {
+                const directions = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
+                for (let [dr, dc] of directions) {
+                    for (let step = 2; step < BOARD_SIZE; step++) {
+                        const targetR = r + step * dr;
+                        const targetC = c + step * dc;
+                        if (targetR < 0 || targetR >= BOARD_SIZE || targetC < 0 || targetC >= BOARD_SIZE) break;
+                        if (canMoveOrJump(r, c, targetR, targetC, true)) return true;
+                    }
+                }
+            } else {
+                const directions = [[-2, -2], [-2, 2], [2, -2], [2, 2]];
+                for (let [dr, dc] of directions) {
+                    const targetR = r + dr;
+                    const targetC = c + dc;
+                    if (targetR >= 0 && targetR < BOARD_SIZE && targetC >= 0 && targetC < BOARD_SIZE) {
+                        if (canMoveOrJump(r, c, targetR, targetC, true)) return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function switchTurn() {
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            playerKillStreaks[currentPlayer] = 0;
+            resetTurnTimer();
+            updateStatusUI();
+            checkWinCondition();
+            renderBoard();
+
+            const tableAndBoardWrapper = document.getElementById("tableAndBoardWrapper");
+            if (is3DMode) {
+                if (!enableBoardSpin) {
+                    tableAndBoardWrapper.className = "table-3d-wrapper mode-3d-static wood-table p-4 sm:p-6 rounded-3xl shadow-2xl flex justify-center items-center";
+                } else if (currentPlayer === 1) {
+                    tableAndBoardWrapper.className = "table-3d-wrapper mode-3d-p1 wood-table p-4 sm:p-6 rounded-3xl shadow-2xl flex justify-center items-center";
+                } else {
+                    tableAndBoardWrapper.className = "table-3d-wrapper mode-3d-p2 wood-table p-4 sm:p-6 rounded-3xl shadow-2xl flex justify-center items-center";
+                }
+            }
+        }
+
+        function startMatchTimer() {
+            clearInterval(matchTimerInterval);
+            matchSeconds = 0;
+            matchTimerInterval = setInterval(() => {
+                if (!isGamePaused) {
+                    matchSeconds++;
+                    const mins = String(Math.floor(matchSeconds / 60)).padStart(2, '0');
+                    const secs = String(matchSeconds % 60).padStart(2, '0');
+                    document.getElementById("matchClock").innerText = `${mins}:${secs}`;
+                }
+            }, 1000);
+        }
+
+        function startTurnTimer() {
+            clearInterval(turnTimerInterval);
+            turnSeconds = 30;
+            updateTurnTimerUI();
+
+            turnTimerInterval = setInterval(() => {
+                if (!isGamePaused) {
+                    turnSeconds--;
+                    updateTurnTimerUI();
+                    if (turnSeconds <= 5 && turnSeconds > 0) playSynthesizedSound('tick');
+                    if (turnSeconds <= 0) {
+                        triggerAnnouncerBanner("TIME EXPIRED!", "from-red-600 to-amber-600");
+                        switchTurn();
+                    }
+                }
+            }, 1000);
+        }
+
+        function resetTurnTimer() { startTurnTimer(); }
+
+        function updateTurnTimerUI() {
+            document.getElementById("turnClock").innerText = `${turnSeconds}s`;
+            document.getElementById("timerBar").style.width = `${(turnSeconds / 30) * 100}%`;
+        }
+
+        function toggleSpinSetting() {
+            enableBoardSpin = !enableBoardSpin;
+            document.getElementById("spinToggleText").innerText = enableBoardSpin ? "Spin: ON" : "Spin: OFF";
+            switchTurn();
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            updateStatusUI();
+        }
+
+        function toggleViewMode() {
+            is3DMode = !is3DMode;
+            const wrapper = document.getElementById("tableAndBoardWrapper");
+            document.getElementById("viewModeText").innerText = is3DMode ? "3D View" : "2D View";
+            document.getElementById("viewIcon").className = is3DMode ? "fa-solid fa-cube text-base" : "fa-solid fa-square text-base";
+
+            if (is3DMode) {
+                if (!enableBoardSpin) {
+                    wrapper.className = "table-3d-wrapper mode-3d-static wood-table p-4 sm:p-6 rounded-3xl shadow-2xl flex justify-center items-center";
+                } else if (currentPlayer === 1) {
+                    wrapper.className = "table-3d-wrapper mode-3d-p1 wood-table p-4 sm:p-6 rounded-3xl shadow-2xl flex justify-center items-center";
+                } else {
+                    wrapper.className = "table-3d-wrapper mode-3d-p2 wood-table p-4 sm:p-6 rounded-3xl shadow-2xl flex justify-center items-center";
+                }
+            } else {
+                wrapper.className = "table-3d-wrapper mode-2d wood-table p-4 sm:p-6 rounded-3xl shadow-2xl flex justify-center items-center";
+            }
+            renderBoard();
+        }
+
+        function checkWinCondition() {
+            let p1Count = 0, p2Count = 0;
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    const piece = boardState[r][c];
+                    if (piece !== null) {
+                        if (Math.floor(piece) === 1) p1Count++;
+                        if (Math.floor(piece) === 2) p2Count++;
+                    }
+                }
+            }
+            if (p1Count === 0) handleVictory(2, p2Name);
+            else if (p2Count === 0) handleVictory(1, p1Name);
+        }
+
+        function handleVictory(winnerId, winnerName) {
+            clearInterval(turnTimerInterval);
+            clearInterval(matchTimerInterval);
+            playSynthesizedSound('win');
+
+            if (window.confetti) confetti({ particleCount: 180, spread: 90, origin: { y: 0.6 } });
+
+            recordWinInStorage(winnerId);
+            const stats = JSON.parse(localStorage.getItem('checkers_stats') || '{"p1Wins":0,"p2Wins":0}');
+            const winnerWinsCount = winnerId === 1 ? stats.p1Wins : stats.p2Wins;
+
+            document.getElementById("winnerNameHeading").innerText = `${winnerName} Wins!`;
+            document.getElementById("winnerSubtitle").innerText = `Congratulations ${winnerName}! You conquered the board in Draughts.`;
+            document.getElementById("finalMatchTime").innerText = document.getElementById("matchClock").innerText;
+            document.getElementById("winnerTotalWins").innerText = `${winnerWinsCount} Win${winnerWinsCount === 1 ? '' : 's'}`;
+
+            triggerAnnouncerBanner(`🏆 ${winnerName.toUpperCase()} WINS THE MATCH! 🏆`, "from-amber-400 via-yellow-500 to-amber-600");
+
+            openModal('victoryModal');
+        }
+
+        function loadStatsFromStorage() {
+            const stats = JSON.parse(localStorage.getItem('checkers_stats') || '{"p1Wins":0,"p2Wins":0,"p1Streak":0,"p2Streak":0}');
+            document.getElementById("p1Wins").innerText = stats.p1Wins;
+            document.getElementById("p2Wins").innerText = stats.p2Wins;
+            document.getElementById("p1Streak").innerText = stats.p1Streak;
+            document.getElementById("p2Streak").innerText = stats.p2Streak;
+        }
+
+        function recordWinInStorage(winnerId) {
+            const stats = JSON.parse(localStorage.getItem('checkers_stats') || '{"p1Wins":0,"p2Wins":0,"p1Streak":0,"p2Streak":0}');
+            if (winnerId === 1) { stats.p1Wins++; stats.p1Streak++; stats.p2Streak = 0; }
+            else { stats.p2Wins++; stats.p2Streak++; stats.p1Streak = 0; }
+            localStorage.setItem('checkers_stats', JSON.stringify(stats));
+            loadStatsFromStorage();
+        }
+
+        function clearStats() {
+            localStorage.removeItem('checkers_stats');
+            loadStatsFromStorage();
+        }
+
+        function updateStatusUI() {
+            let p1Pieces = 0, p1Kings = 0, p2Pieces = 0, p2Kings = 0;
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    const val = boardState[r][c];
+                    if (val !== null) {
+                        if (val === 1) p1Pieces++;
+                        if (val === 1.5) { p1Pieces++; p1Kings++; }
+                        if (val === 2) p2Pieces++;
+                        if (val === 2.5) { p2Pieces++; p2Kings++; }
+                    }
+                }
+            }
+
+            document.getElementById("p1PieceCount").innerText = p1Pieces;
+            document.getElementById("p1KingCount").innerText = p1Kings;
+            document.getElementById("p2PieceCount").innerText = p2Pieces;
+            document.getElementById("p2KingCount").innerText = p2Kings;
+
+            const p1Card = document.getElementById("p1Card");
+            const p2Card = document.getElementById("p2Card");
+
+            if (currentPlayer === 1) {
+                p1Card.className = "w-full lg:w-64 bg-slate-900/90 backdrop-blur-md p-4 rounded-2xl border-2 border-red-500 shadow-xl flex lg:flex-col justify-between items-center gap-4 transition-all duration-300";
+                p2Card.className = "w-full lg:w-64 bg-slate-900/60 opacity-60 backdrop-blur-md p-4 rounded-2xl border border-slate-800 shadow-xl flex lg:flex-col justify-between items-center gap-4 transition-all duration-300";
+                document.getElementById("p1TurnBadge").innerText = "Your Turn";
+                document.getElementById("p2TurnBadge").innerText = "Waiting";
+            } else {
+                p2Card.className = "w-full lg:w-64 bg-slate-900/90 backdrop-blur-md p-4 rounded-2xl border-2 border-blue-500 shadow-xl flex lg:flex-col justify-between items-center gap-4 transition-all duration-300";
+                p1Card.className = "w-full lg:w-64 bg-slate-900/60 opacity-60 backdrop-blur-md p-4 rounded-2xl border border-slate-800 shadow-xl flex lg:flex-col justify-between items-center gap-4 transition-all duration-300";
+                document.getElementById("p2TurnBadge").innerText = "Your Turn";
+                document.getElementById("p1TurnBadge").innerText = "Waiting";
+            }
+        }
+
+        function restartGame() {
+            initBoardState();
+            startMatchTimer();
+            startTurnTimer();
+            renderBoard();
+            updateStatusUI();
+        }
+
+        function openModal(id) { document.getElementById(id).classList.remove("hidden"); }
+        function closeModal(id) { document.getElementById(id).classList.add("hidden"); }
+
+        let particles = [];
+        let canvas, ctx;
+
+        function initCanvas() {
+            canvas = document.getElementById("fxCanvas");
+            if (!canvas) return;
+            ctx = canvas.getContext("2d");
+            resizeCanvas();
+            window.addEventListener("resize", resizeCanvas);
+            requestAnimationFrame(animParticles);
+        }
+
+        function resizeCanvas() {
+            if (!canvas) return;
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        function spawnParticleExplosion(x, y, color) {
+            for (let i = 0; i < 28; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 6 + 2;
+                particles.push({
+                    x: x, y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    radius: Math.random() * 5 + 2,
+                    color: color,
+                    alpha: 1,
+                    decay: Math.random() * 0.03 + 0.015
+                });
+            }
+        }
+
+        function animParticles() {
+            if (ctx && canvas) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i];
+                    p.x += p.vx; p.y += p.vy; p.alpha -= p.decay;
+                    if (p.alpha <= 0) { particles.splice(i, 1); continue; }
+                    ctx.save();
+                    ctx.globalAlpha = p.alpha;
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+            requestAnimationFrame(animParticles);
+        }
+
+        window.onload = function() {
+            initCanvas();
+            loadStatsFromStorage();
+            changeEnvironment('env-badap');
+            initBoardState();
+            renderBoard();
+        };
+    </script>
+</body>
+</html>
